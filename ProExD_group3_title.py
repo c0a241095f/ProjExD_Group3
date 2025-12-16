@@ -1,6 +1,7 @@
 import math
 import os
 import random
+import subprocess
 import sys
 import time
 import pygame as pg
@@ -48,7 +49,9 @@ def main():
                 if stage1_rect.collidepoint(event.pos):
                     return 0  # STAGE 1 をクリックした時の処理を書く
                 if stage2_rect.collidepoint(event.pos):
-                    return 0  # STAGE 2 をクリックした時の処理を書く
+                    pg.quit()  # pygameを終了
+                    subprocess.run([sys.executable, "kokakoka.py"])
+                    sys.exit()
 
         # 描画
         screen.fill(BLACK)
