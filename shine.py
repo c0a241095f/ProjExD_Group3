@@ -101,8 +101,9 @@ class Koukaton(pg.sprite.Sprite):
                 if operator == "+": self.power += 1
                 if operator == "x": self.power += value
             else:
-                # 減る場合
-                self.power -= 1
+                if operator == "-": self.power -= 1
+                if operator == "/": self.power -= value
+                
             
             if self.power < 1: self.power = 1
 
