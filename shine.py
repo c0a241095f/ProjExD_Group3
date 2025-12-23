@@ -2,6 +2,7 @@ import os
 import pygame as pg
 import sys
 import random
+import subprocess
 
 # --- 設定（数字を変えるとゲームバランスが変わります） ---
 WIDTH = 600             # 画面の幅
@@ -22,6 +23,8 @@ STATE_RUNNING = "RUNNING" # 走るパート
 STATE_BOSS = "BOSS"       # ボス戦パート
 STATE_RESULT = "RESULT"   # 結果パート
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FIG_DIR = os.path.join(BASE_DIR, "fig")
 
 class Koukaton(pg.sprite.Sprite):
     """自軍（こうかとん）を管理するクラス"""
@@ -197,8 +200,79 @@ class Enemy(pg.sprite.Sprite):
         pg.draw.rect(screen, BLACK, bg_rect)
         screen.blit(text, bg_rect)
 
+class Advertisement:
+    """
+    Advertisement の Docstring
+    """
+    def __init__(self):
+        self.img = pg.Surface((WIDTH//2, HEIGHT))  #広告を載せる用の背景
+        self.img.fill((128, 128, 128))
+        self.img.set_alpha(200)
+        try:
+            self.imgx = pg.image.load(os.path.join(FIG_DIR, "bb.png"))
+            self.imgx = pg.transform.rotozoom(self.imgx, 0, 0.25)
+        except:
+            self.surx = pg.Surface((64, 64))
+            self.surx.fill((255, 0, 0))
 
+        self.imgx_rct = self.imgx.get_rect()
+
+        self.surx = pg.Surface((64, 64))
+        self.surx.fill((255, 0, 0))
+        self.surx_rct = self.surx.get_rect()
+        self.surx_rct.topleft = ((WIDTH/4 + WIDTH/2) - 72, 0)
+
+    def update(self, screen: pg.Surface):
+        """
+        update の Docstring
+        
+        :param self: 説明
+        :param screen: 説明
+        :type screen: pg.Surface
+        """
+        screen.blit(self.img, [WIDTH/4, 0])
+        screen.blit(self.surx, self.surx_rct)
+        screen.blit(self.imgx, self.surx_rct)
+        
 def main():
+    def reset_game():
+        player = Koukaton()
+        enemy = Enemy(1)
+        gates = pg.sprite.Group()
+        all_sprites = pg.sprite.Group()
+
+        all_sprites.add(player)
+
+        return {
+            "player": player,
+            "enemy": enemy,
+            "gates": gates,
+            "all_sprites": all_sprites,
+            "level": 1,
+            "game_state": STATE_RUNNING,
+            "spawned_gates": 0,
+            "passed_gates": 0,
+            "gate_timer": 0,
+            "batch_counter": 0,
+            "result_start_time": 0,
+            "is_win": False,
+        }
+    
+    game = reset_game()
+    player = game["player"]
+    enemy = game["enemy"]
+    gates = game["gates"]
+    all_sprites = game["all_sprites"]
+
+    level = game["level"]
+    game_state = game["game_state"]
+    spawned_gates = game["spawned_gates"]
+    passed_gates = game["passed_gates"]
+    gate_timer = game["gate_timer"]
+    batch_counter = game["batch_counter"]
+    result_start_time = game["result_start_time"]
+    is_win = game["is_win"]
+
     pg.init()
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     pg.display.set_caption("ラストコカー・コカー")
@@ -229,12 +303,30 @@ def main():
     result_start_time = 0 # 結果画面が出た時間
     is_win = False
 
+    advertisement = Advertisement()
+
     while True:
         # --- イベント処理（×ボタンで終了） ---
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
                 sys.exit()
+            if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                if advertisement.surx_rct.collidepoint(event.pos):
+                        game = reset_game()
+                        player = game["player"]
+                        enemy = game["enemy"]
+                        gates = game["gates"]
+                        all_sprites = game["all_sprites"]
+
+                        level = game["level"]
+                        game_state = game["game_state"]
+                        spawned_gates = game["spawned_gates"]
+                        passed_gates = game["passed_gates"]
+                        gate_timer = game["gate_timer"]
+                        batch_counter = game["batch_counter"]
+                        result_start_time = game["result_start_time"]
+                        is_win = game["is_win"]
 
         # --- ゲートを出す処理 ---
         if game_state == STATE_RUNNING:
@@ -376,7 +468,10 @@ def main():
                     
                     enemy = Enemy(level)    # 新しいボスを作る
                 else:
-                    pg.quit() # ゲーム終了
+                    advertisement.update(screen)
+                    pg.display.update()
+                    pg.time.wait(20000)
+                    pg.quit()
                     sys.exit()
 
         pg.display.update()
