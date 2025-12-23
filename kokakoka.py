@@ -209,9 +209,7 @@ def draw_status_ui(screen, player, font):
 # =====================
 def stage2(screen):
     clock = pg.time.Clock()
-    bg = pg.transform.scale(pg.image.load("fig/pg_bg.png"), (WIDTH, HEIGHT))
-    bg = pg.transform.scale(bg, (WIDTH, HEIGHT))
-    bg2 = pg.transform.flip(bg, True, False)
+    bg = pg.transform.scale(pg.image.load("fig/pg_bg.jpg"), (WIDTH, HEIGHT))
 
     player = Player((200, HEIGHT // 2))
     enemies = []
@@ -306,10 +304,7 @@ def stage2(screen):
                     if enemy.hp <= 0:
                         enemies.remove(enemy)
 
-        x = tmr * BG_SCROLL_SPEED % 3200
-        screen.blit(bg, [-x, 0])
-        screen.blit(bg2, [-x+1600, 0])
-        screen.blit(bg, [-x+3200, 0])
+        screen.blit(bg, [0, 0])
 
         for gate in gates:
             gate.draw(screen)
