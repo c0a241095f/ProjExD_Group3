@@ -26,6 +26,7 @@ STATE_RUNNING = "RUNNING" # 走るパート
 STATE_BOSS = "BOSS"       # ボス戦パート
 STATE_RESULT = "RESULT"   # 結果パート
 
+# ディレクトリ設定
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FIG_DIR = os.path.join(BASE_DIR, "fig")
 
@@ -231,7 +232,7 @@ class Enemy(pg.sprite.Sprite):
         pg.draw.rect(screen, BLACK, bg_rect)
         screen.blit(text, bg_rect)
 
-class Advertisement:
+class Advertisement(pg.sprite.Sprite):
     """
     Advertisement の Docstring
     """
@@ -240,16 +241,15 @@ class Advertisement:
         self.img.fill((128, 128, 128))
         self.img.set_alpha(200)
         try:
-            self.imgx = pg.image.load(os.path.join(FIG_DIR, "bb.png"))
+            self.imgx = pg.image.load(os.path.join(FIG_DIR, "bb.png"))  #広告の×ボタン画像
             self.imgx = pg.transform.rotozoom(self.imgx, 0, 0.25)
-        except:
+            self.imgx_rct = self.imgx.get_rect()
             self.surx = pg.Surface((64, 64))
-            self.surx.fill((255, 0, 0))
+            self.surx.fill((152, 152, 152))
+        except:
+            self.surx = pg.Surface((64, 64))  #×ボタン画像がない場合は灰色の四角のみ
+            self.surx.fill((152, 152, 152))
 
-        self.imgx_rct = self.imgx.get_rect()
-
-        self.surx = pg.Surface((64, 64))
-        self.surx.fill((255, 0, 0))
         self.surx_rct = self.surx.get_rect()
         self.surx_rct.topleft = ((WIDTH/4 + WIDTH/2) - 72, 0)
 
@@ -349,7 +349,7 @@ def main():
                 for gate in hits:
                     player.apply_effect(gate.operator, gate.value)
                     for other in gates:
-                        if other.batch_id == gate.batch_id:
+                        if other.pair_id == gate.pair_id:
                             other.kill()
 
         # --- 当たり判定（ボス） ---
