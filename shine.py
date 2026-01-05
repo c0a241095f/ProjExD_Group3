@@ -34,7 +34,7 @@ class Koukaton(pg.sprite.Sprite):
         
         # 画像読み込み試行
         try:
-            img = pg.image.load("3.png")
+            img = pg.image.load("./fig/3.png")
             self.image = pg.transform.scale(img, (50, 50))
         except FileNotFoundError:
             pass
@@ -75,20 +75,20 @@ class Koukaton(pg.sprite.Sprite):
             #POINT4 こうかとんの表情の画像
             if operator == "+":
                 self.count += value
-                img = pg.image.load("6.png")
+                img = pg.image.load("./fig/6.png")
                 self.image = pg.transform.scale(img, (50, 50))
 
             elif operator == "x":
                 self.count *= value
-                img = pg.image.load("6.png")
+                img = pg.image.load("./fig/6.png")
                 self.image = pg.transform.scale(img, (50, 50))
             elif operator == "-":
                 self.count -= value
-                img = pg.image.load("8.png")
+                img = pg.image.load("./fig/8.png")
                 self.image = pg.transform.scale(img, (50, 50))
             elif operator == "/":
                 self.count //= value
-                img = pg.image.load("8.png")
+                img = pg.image.load("./fig/8.png")
                 self.image = pg.transform.scale(img, (50, 50))
             
             # 0未満にならないように
