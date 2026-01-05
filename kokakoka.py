@@ -10,6 +10,7 @@ import pygame as pg
 WIDTH = 1100
 HEIGHT = 650
 FPS = 60
+BG_SCROLL_SPEED = 5
 
 ARROW_SPEED = 14
 SWORD_SPEED = 6
@@ -63,7 +64,7 @@ class Player:
 class Enemy:
     def __init__(self, level=0):
         img = pg.image.load("fig/alien1.png").convert_alpha()
-        self.image = pg.transform.rotozoom(img, 0, 1.2)
+        self.image = pg.transform.rotozoom(img, 0, 0.3)
         self.rect = self.image.get_rect(
             center=(WIDTH + 50, random.randint(100, HEIGHT - 100))
         )
@@ -86,8 +87,8 @@ class Enemy:
 # =====================
 class Arrow:
     def __init__(self, player, index, total):
-        img = pg.image.load("fig/arrow_bg.png").convert_alpha()
-        self.image = pg.transform.rotozoom(img, 180, 1 / 6)
+        img = pg.image.load("fig/arrow.png").convert_alpha()
+        self.image = pg.transform.rotozoom(img, 0, 1 / 6)
         self.rect = self.image.get_rect(center=player.rect.center)
         # ★ 矢数に応じて上下にずらす
         offset = (index - (total - 1) / 2) * 20
@@ -217,7 +218,12 @@ def stage2(screen):
 
     enemy_timer = gate_timer = sword_timer = arrow_timer = 0
     enemy_count = 0
+    tmr = 0
     font = pg.font.SysFont("meiryo", 26)
+
+    pg.mixer.music.load("fig/joi.mp3")
+    pg.mixer.music.set_volume(0.4)
+    pg.mixer.music.play(-1)
 
     while True:
         dt = clock.tick(FPS)
@@ -298,7 +304,8 @@ def stage2(screen):
                     if enemy.hp <= 0:
                         enemies.remove(enemy)
 
-        screen.blit(bg, (0, 0))
+        screen.blit(bg, [0, 0])
+
         for gate in gates:
             gate.draw(screen)
         for atk in attacks:
@@ -308,6 +315,7 @@ def stage2(screen):
         player.draw(screen)
 
         draw_status_ui(screen, player, font)
+        tmr += 1
 
         if player.hp <= 0:
             screen.blit(font.render("GAME OVER", True, RED),
