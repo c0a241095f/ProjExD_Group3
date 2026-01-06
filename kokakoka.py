@@ -11,7 +11,6 @@ import subprocess
 WIDTH = 1100
 HEIGHT = 650
 FPS = 60
-BG_SCROLL_SPEED = 5
 
 ARROW_SPEED = 14
 SWORD_SPEED = 6
@@ -20,13 +19,16 @@ SWORD_DMG = 1
 ARROW_NUM = 1
 SWORD_NUM = 1
 
+ENEMY_IMAGE = "fig/alien1.png"
+BOSS_IMAGE = "fig/103358909.jpg"
+
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 60, 60)
 GREEN = (80, 255, 80)
-YELLOW = (255, 255, 0)
+BLUE = (80, 120, 255)
 
 # =====================
 # プレイヤー
@@ -63,15 +65,26 @@ class Player:
 # 敵
 # =====================
 class Enemy:
-    def __init__(self, level=0):
-        img = pg.image.load("fig/alien1.png").convert_alpha()
-        self.image = pg.transform.rotozoom(img, 0, 0.3)
-        self.rect = self.image.get_rect(
-            center=(WIDTH + 50, random.randint(100, HEIGHT - 100))
-        )
-        self.max_hp = 30 + level * 5
+    def __init__(self, level):
+        self.is_boss = (level % 5 == 4)
+
+        if self.is_boss:
+            img = pg.image.load(BOSS_IMAGE).convert_alpha()
+            scale = 1.5
+            self.rect = pg.transform.rotozoom(img, 0, scale).get_rect(
+                center=(WIDTH + 80, HEIGHT // 2)
+            )
+        else:
+            img = pg.image.load(ENEMY_IMAGE).convert_alpha()
+            scale = 0.3
+            self.rect = pg.transform.rotozoom(img, 0, scale).get_rect(
+                center=(WIDTH + 50, random.randint(100, HEIGHT - 100))
+            )
+
+        self.image = pg.transform.rotozoom(img, 0, scale)
+        self.max_hp = (40 if self.is_boss else 10) + level * 2
         self.hp = self.max_hp
-        self.speed = random.randint(3, 6) + level // 3
+        self.speed = random.randint(1, 2) + level // 3
 
     def update(self):
         self.rect.x -= self.speed
@@ -79,9 +92,11 @@ class Enemy:
     def draw(self, screen):
         screen.blit(self.image, self.rect)
         rate = self.hp / self.max_hp
-        pg.draw.rect(screen, RED, (self.rect.centerx - 20, self.rect.top - 10, 20, 5))
+        h = 8 if self.is_boss else 5
+        pg.draw.rect(screen, RED,
+                     (self.rect.centerx - 25, self.rect.top - 12, 50, h))
         pg.draw.rect(screen, GREEN,
-                     (self.rect.centerx - 20, self.rect.top - 10, 20 * rate, 5))
+                     (self.rect.centerx - 25, self.rect.top - 12, 50 * rate, h))
 
 # =====================
 # Arrow
@@ -89,13 +104,13 @@ class Enemy:
 class Arrow:
     def __init__(self, player, index, total):
         img = pg.image.load("fig/arrow.png").convert_alpha()
-        self.image = pg.transform.rotozoom(img, 0, 1 / 6)
-        self.rect = self.image.get_rect(center=player.rect.center)
-        # ★ 矢数に応じて上下にずらす
+        self.image = pg.transform.rotozoom(img, 0, 0.1)
+
         offset = (index - (total - 1) / 2) * 20
         self.rect = self.image.get_rect(
             center=(player.rect.centerx, player.rect.centery + offset)
         )
+
         self.speed = player.arrow_speed
         self.dmg = player.arrow_dmg
 
@@ -111,18 +126,17 @@ class Arrow:
 class Sword:
     def __init__(self, player, index, total):
         img = pg.image.load("fig/sword.png").convert_alpha()
-        self.image = pg.transform.rotozoom(img, -120, 1 / 6)
-        self.rect = self.image.get_rect(center=player.rect.center)
-        # ★ 扇状に初期配置
+        self.image = pg.transform.rotozoom(img, -120, 0.125)
+
         angle = (index - (total - 1) / 2) * 15
         rad = math.radians(angle)
-
         self.rect = self.image.get_rect(
             center=(
                 player.rect.centerx + math.cos(rad) * 30,
                 player.rect.centery + math.sin(rad) * 30
             )
         )
+
         self.speed = player.sword_speed
         self.dmg = player.sword_dmg
 
@@ -145,6 +159,7 @@ class Sword:
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
+
 
 # =====================
 # Gate
@@ -174,12 +189,62 @@ class Gate:
 
     def draw(self, screen):
         screen.blit(self.surface, self.rect)
-        txt = self.font.render(self.text, True, YELLOW)
+        txt = self.font.render(self.text, True, BLACK)
         screen.blit(txt, txt.get_rect(center=self.rect.center))
 
+def spawn_kill_gate(x, y, gates):
+    if len(gates) >= 3:
+        return
+    effect, _ = random.choice(GATE_EFFECTS)
+    gate = Gate(y, effect)
+    gate.rect.centerx = x
+    gates.append(gate)
 
+# =====================
+# ボス強化選択
+# =====================
+BOSS_UPGRADES = [
+    ("arrow_num", "矢の数 ×2"),
+    ("sword_num", "剣の数 ×2"),
+    ("arrow_dmg", "矢DMG ×2"),
+    ("sword_dmg", "剣DMG ×2"),
+]
+
+class BossChoice:
+    def __init__(self, center, effect):
+        self.effect = effect
+        self.font = pg.font.SysFont("meiryo", 26)
+        self.surface = pg.Surface((320, 80))
+        self.surface.fill(BLUE)
+        self.rect = self.surface.get_rect(center=center)
+        self.text = self.font.render(effect[1], True, WHITE)
+
+    def draw(self, screen):
+        screen.blit(self.surface, self.rect)
+        screen.blit(self.text, self.text.get_rect(center=self.rect.center))
+
+    def clicked(self, pos):
+        return self.rect.collidepoint(pos)
+
+def apply_boss_upgrade(player, upgrade):
+    if upgrade == "arrow_num":
+        player.arrow_num *= 2
+    elif upgrade == "sword_num":
+        player.sword_num *= 2
+    elif upgrade == "arrow_dmg":
+        player.arrow_dmg *= 2
+    elif upgrade == "sword_dmg":
+        player.sword_dmg *= 2
+
+def create_boss_choices():
+    effects = random.sample(BOSS_UPGRADES, 3)
+    ys = [HEIGHT//2 - 120, HEIGHT//2, HEIGHT//2 + 120]
+    return [BossChoice((WIDTH//2, y), e) for e, y in zip(effects, ys)]
+
+# =====================
+# UI
+# =====================
 def draw_status_ui(screen, player, font):
-    # 背景パネル
     panel = pg.Surface((260, 250), pg.SRCALPHA)
     panel.fill((0, 0, 0, 160))
     screen.blit(panel, (10, 10))
@@ -187,12 +252,12 @@ def draw_status_ui(screen, player, font):
     texts = [
         f"HP : {player.hp}",
         "",
-        f"Arrow",
+        "Arrow",
         f"  Num   : {player.arrow_num}",
         f"  DMG   : {player.arrow_dmg}",
         f"  Speed : {player.arrow_speed}",
         "",
-        f"Sword",
+        "Sword",
         f"  Num   : {player.sword_num}",
         f"  DMG   : {player.sword_dmg}",
         f"  Speed : {player.sword_speed}",
@@ -252,9 +317,11 @@ def stage2(screen):
     start_se = pg.mixer.Sound("joi_sound/アヒルが大笑い.mp3")
     gameover_se = pg.mixer.Sound("joi_sound/鳥の奇声.mp3")
 
+    boss_choices = []
+    boss_choice_active = False
+
     enemy_timer = gate_timer = sword_timer = arrow_timer = 0
     enemy_count = 0
-    tmr = 0
     font = pg.font.SysFont("meiryo", 26)
     start_se.play()
 
@@ -288,12 +355,25 @@ def stage2(screen):
                         subprocess.run([sys.executable, "shine.py"])
                         sys.exit()
         if not is_gameover:
-            if enemy_timer >= 1200:
+            if enemy_timer >= 5000:
                 enemy_timer = 0
-                enemies.append(Enemy(enemy_count // 5))
+                enemies.append(Enemy(enemy_count))
                 enemy_count += 1
 
-            if gate_timer >= 3000:
+            if boss_choice_active and event.type == pg.MOUSEBUTTONDOWN:
+                for choice in boss_choices:
+                    if choice.clicked(event.pos):
+                        apply_boss_upgrade(player, choice.effect[0])
+                        boss_choices.clear()
+                        boss_choice_active = False
+
+        if not boss_choice_active:
+            if enemy_timer >= 5000:
+                enemy_timer = 0
+                enemies.append(Enemy(enemy_count))
+                enemy_count += 1
+
+            if gate_timer >= 4000:
                 gate_timer = 0
                 gates.clear()
                 e1, e2 = random.sample(GATE_EFFECTS, 2)
@@ -305,7 +385,7 @@ def stage2(screen):
                 for i in range(player.arrow_num):
                     attacks.append(Arrow(player, i, player.arrow_num))
 
-            if sword_timer >= 1500:
+            if sword_timer >= 3000:
                 sword_timer = 0
                 for i in range(player.sword_num):
                     attacks.append(Sword(player, i, player.sword_num))
@@ -345,6 +425,7 @@ def stage2(screen):
                     player.hp -= 1
                     enemies.remove(enemy)
                 elif enemy.rect.right < 0:
+                    player.hp -= 3
                     enemies.remove(enemy)
 
             for atk in attacks[:]:
@@ -353,10 +434,34 @@ def stage2(screen):
                         enemy.hp -= atk.dmg
                         if isinstance(atk, Sword):
                             attacks.remove(atk)
+                        if atk in attacks:
+                            attacks.remove(atk)
                         if enemy.hp <= 0:
+                            if enemy.is_boss:
+                                boss_choices = create_boss_choices()
+                                boss_choice_active = True
+                            else:
+                                spawn_kill_gate(enemy.rect.centerx,
+                                                enemy.rect.centery, gates)
                             enemies.remove(enemy)
 
-            screen.blit(bg, [0, 0])
+        screen.blit(bg, (0, 0))
+        for gate in gates:
+            gate.draw(screen)
+        for atk in attacks:
+            atk.draw(screen)
+        for enemy in enemies:
+            enemy.draw(screen)
+        player.draw(screen)
+
+        draw_status_ui(screen, player, font)
+
+        if boss_choice_active:
+            overlay = pg.Surface((WIDTH, HEIGHT), pg.SRCALPHA)
+            overlay.fill((0, 0, 0, 180))
+            screen.blit(overlay, (0, 0))
+            for choice in boss_choices:
+                choice.draw(screen)
 
             for gate in gates:
                 gate.draw(screen)
@@ -367,7 +472,6 @@ def stage2(screen):
             player.draw(screen)
 
             draw_status_ui(screen, player, font)
-            tmr += 1
 
             if player.hp <= 0:
                 is_gameover = True
@@ -389,4 +493,3 @@ if __name__ == "__main__":
     stage2(pg.display.set_mode((WIDTH, HEIGHT)))
     pg.quit()
     sys.exit()
-
