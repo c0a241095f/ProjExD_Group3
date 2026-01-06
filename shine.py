@@ -246,6 +246,10 @@ class Advertisement(pg.sprite.Sprite):
             self.imgx_rct = self.imgx.get_rect()
             self.surx = pg.Surface((64, 64))
             self.surx.fill((152, 152, 152))
+            self.imgNext = pg.image.load(os.path.join(FIG_DIR, "arrow_bg.png"))  #広告
+            self.imgNext = pg.transform.rotozoom(self.imgNext, 0, 0.25)
+            self.imgNext_rct = self.imgNext.get_rect()
+            self.imgNext_rct.topleft = (WIDTH/4+20, HEIGHT/2-100)
         except:
             self.surx = pg.Surface((64, 64))  #×ボタン画像がない場合は灰色の四角のみ
             self.surx.fill((152, 152, 152))
@@ -264,6 +268,7 @@ class Advertisement(pg.sprite.Sprite):
         screen.blit(self.img, [WIDTH/4, 0])
         screen.blit(self.surx, self.surx_rct)
         screen.blit(self.imgx, self.surx_rct)
+        screen.blit(self.imgNext, self.imgNext_rct)
 
 def main():
     pg.init()
@@ -310,6 +315,11 @@ def main():
                 if advertisement.surx_rct.collidepoint(event.pos):
                     # ×ボタンでゲームリスタート
                     g = get_initial_state()
+                elif advertisement.imgNext_rct.collidepoint(event.pos):
+                    # 広告部分クリックで別のゲームスタート
+                    pg.quit()
+                    subprocess.run([sys.executable, "kokakoka.py"])
+                    sys.exit()
 
         # 変数が使いやすいように参照を抽出
         player = g["player"]

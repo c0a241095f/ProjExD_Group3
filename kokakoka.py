@@ -3,6 +3,7 @@ import sys
 import random
 import math
 import pygame as pg
+import subprocess
 
 # =====================
 # 基本設定
@@ -203,6 +204,37 @@ def draw_status_ui(screen, player, font):
         screen.blit(txt, (20, y))
         y += 18
 
+# =====================
+# Advertisement
+# =====================
+class Advertisement:
+    def __init__(self):
+        self.img = pg.Surface((WIDTH//2, HEIGHT))  #広告を載せる用の背景
+        self.img.fill((128, 128, 128))
+        self.img.set_alpha(200)
+        try:
+            self.imgx = pg.image.load("fig/bb.png")
+            self.imgx = pg.transform.rotozoom(self.imgx, 0, 0.25)
+            self.imgx_rct = self.img.get_rect()
+            self.surx = pg.Surface((64, 64))
+            self.surx.fill((152, 152, 152))
+            self.imgNext = pg.image.load("fig/militaly.png")
+            self.imgNext = pg.transform.rotozoom(self.imgNext, 0, 0.5)
+            self.imgNext_rct = self.imgNext.get_rect()
+            self.imgNext_rct.topleft = (WIDTH/2-250, HEIGHT/2-250)
+        except:
+            self.surx = pg.Surface((64, 64))  #×ボタン画像がない場合は灰色の四角のみ
+            self.surx.fill((152, 152, 152))
+
+        self.surx_rct = self.surx.get_rect()
+        self.surx_rct.topleft = ((WIDTH/4-64 + WIDTH/2), 0)
+
+    def update(self, screen):
+        screen.blit(self.img, [WIDTH/4, 0])
+        screen.blit(self.surx, self.surx_rct)
+        screen.blit(self.imgx, self.surx_rct)
+        screen.blit(self.imgNext, self.imgNext_rct)
+            
 
 # =====================
 # ステージ
@@ -215,6 +247,7 @@ def stage2(screen):
     enemies = []
     attacks = []
     gates = []
+    advertisement = Advertisement()
 
     enemy_timer = gate_timer = sword_timer = arrow_timer = 0
     enemy_count = 0
@@ -224,6 +257,8 @@ def stage2(screen):
     pg.mixer.music.load("fig/joi.mp3")
     pg.mixer.music.set_volume(0.4)
     pg.mixer.music.play(-1)
+
+    is_gameover = False  #ゲームオーバーフラグ
 
     while True:
         dt = clock.tick(FPS)
@@ -235,96 +270,111 @@ def stage2(screen):
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
+            
+            if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                if is_gameover:
+                    if advertisement.surx_rct.collidepoint(event.pos):
+                        # ×ボタンでゲームリスタート
+                        stage2(screen)
+                        return
+                    elif advertisement.imgNext_rct.collidepoint(event.pos):
+                        # 広告部分クリックで別のゲームスタート
+                        pg.quit()
+                        subprocess.run([sys.executable, "shine.py"])
+                        sys.exit()
+        if not is_gameover:
+            if enemy_timer >= 1200:
+                enemy_timer = 0
+                enemies.append(Enemy(enemy_count // 5))
+                enemy_count += 1
 
-        if enemy_timer >= 1200:
-            enemy_timer = 0
-            enemies.append(Enemy(enemy_count // 5))
-            enemy_count += 1
-
-        if gate_timer >= 3000:
-            gate_timer = 0
-            gates.clear()
-            e1, e2 = random.sample(GATE_EFFECTS, 2)
-            gates.append(Gate(200, e1[0]))
-            gates.append(Gate(450, e2[0]))
-
-        if arrow_timer >= 500:
-            arrow_timer = 0
-            for i in range(player.arrow_num):
-                attacks.append(Arrow(player, i, player.arrow_num))
-
-        if sword_timer >= 1500:
-            sword_timer = 0
-            for i in range(player.sword_num):
-                attacks.append(Sword(player, i, player.sword_num))
-
-        player.update()
-
-        for gate in gates[:]:
-            gate.update()
-            if player.rect.colliderect(gate.rect):
-                if gate.effect == "hp":
-                    player.hp += 1
-                elif gate.effect == "speed_arrow":
-                    player.arrow_speed += 1
-                elif gate.effect == "speed_sword":
-                    player.sword_speed += 1
-                elif gate.effect == "dmg_arrow":
-                    player.arrow_dmg += 1
-                elif gate.effect == "dmg_sword":
-                    player.sword_dmg += 1
-                elif gate.effect == "num_arrow":
-                    player.arrow_num += 1
-                elif gate.effect == "num_sword":
-                    player.sword_num += 1
+            if gate_timer >= 3000:
+                gate_timer = 0
                 gates.clear()
+                e1, e2 = random.sample(GATE_EFFECTS, 2)
+                gates.append(Gate(200, e1[0]))
+                gates.append(Gate(450, e2[0]))
 
-        for atk in attacks[:]:
-            if isinstance(atk, Arrow):
-                atk.update()
-                if atk.rect.left > WIDTH:
-                    attacks.remove(atk)
-            else:
-                atk.update(enemies)
+            if arrow_timer >= 500:
+                arrow_timer = 0
+                for i in range(player.arrow_num):
+                    attacks.append(Arrow(player, i, player.arrow_num))
 
-        for enemy in enemies[:]:
-            enemy.update()
-            if enemy.rect.colliderect(player.rect):
-                player.hp -= 1
-                enemies.remove(enemy)
-            elif enemy.rect.right < 0:
-                enemies.remove(enemy)
+            if sword_timer >= 1500:
+                sword_timer = 0
+                for i in range(player.sword_num):
+                    attacks.append(Sword(player, i, player.sword_num))
 
-        for atk in attacks[:]:
-            for enemy in enemies[:]:
-                if atk.rect.colliderect(enemy.rect):
-                    enemy.hp -= atk.dmg
-                    if isinstance(atk, Sword):
+            player.update()
+
+            for gate in gates[:]:
+                gate.update()
+                if player.rect.colliderect(gate.rect):
+                    if gate.effect == "hp":
+                        player.hp += 1
+                    elif gate.effect == "speed_arrow":
+                        player.arrow_speed += 1
+                    elif gate.effect == "speed_sword":
+                        player.sword_speed += 1
+                    elif gate.effect == "dmg_arrow":
+                        player.arrow_dmg += 1
+                    elif gate.effect == "dmg_sword":
+                        player.sword_dmg += 1
+                    elif gate.effect == "num_arrow":
+                        player.arrow_num += 1
+                    elif gate.effect == "num_sword":
+                        player.sword_num += 1
+                    gates.clear()
+
+            for atk in attacks[:]:
+                if isinstance(atk, Arrow):
+                    atk.update()
+                    if atk.rect.left > WIDTH:
                         attacks.remove(atk)
-                    if enemy.hp <= 0:
-                        enemies.remove(enemy)
+                else:
+                    atk.update(enemies)
 
-        screen.blit(bg, [0, 0])
+            for enemy in enemies[:]:
+                enemy.update()
+                if enemy.rect.colliderect(player.rect):
+                    player.hp -= 1
+                    enemies.remove(enemy)
+                elif enemy.rect.right < 0:
+                    enemies.remove(enemy)
 
-        for gate in gates:
-            gate.draw(screen)
-        for atk in attacks:
-            atk.draw(screen)
-        for enemy in enemies:
-            enemy.draw(screen)
-        player.draw(screen)
+            for atk in attacks[:]:
+                for enemy in enemies[:]:
+                    if atk.rect.colliderect(enemy.rect):
+                        enemy.hp -= atk.dmg
+                        if isinstance(atk, Sword):
+                            attacks.remove(atk)
+                        if enemy.hp <= 0:
+                            enemies.remove(enemy)
 
-        draw_status_ui(screen, player, font)
-        tmr += 1
+            screen.blit(bg, [0, 0])
 
-        if player.hp <= 0:
-            screen.blit(font.render("GAME OVER", True, RED),
-                        (WIDTH // 2 - 80, HEIGHT // 2))
-            pg.display.update()
-            pg.time.wait(3000)
-            return  #ここに広告入れるといい
+            for gate in gates:
+                gate.draw(screen)
+            for atk in attacks:
+                atk.draw(screen)
+            for enemy in enemies:
+                enemy.draw(screen)
+            player.draw(screen)
 
+            draw_status_ui(screen, player, font)
+            tmr += 1
+
+            if player.hp <= 0:
+                is_gameover = True
+                
+  
         pg.display.update()
+        if is_gameover:
+            screen.blit(font.render("GAME OVER", True, RED),
+                            (WIDTH // 2 - 80, HEIGHT // 2))
+            pg.display.update()
+
+            advertisement.update(screen)
 
 # =====================
 # 実行
