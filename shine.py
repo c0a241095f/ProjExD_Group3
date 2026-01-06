@@ -369,7 +369,7 @@ def main():
         pg.draw.line(screen, (50, 50, 50), (WIDTH//2, 0), (WIDTH//2, HEIGHT), 2)
         
         all_sprites.draw(screen)   # ゲートやボスを描画
-        player.draw_swarm(screen)  # 自軍（わらわら）を描画
+        # player.draw_swarm(screen)  # 自軍（わらわら）を描画
 
         # 文字情報の表示
         info_text = font.render(f"自軍: {player.count} (Lv.{level})", True, WHITE)
