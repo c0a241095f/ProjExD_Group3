@@ -249,10 +249,14 @@ def stage2(screen):
     gates = []
     advertisement = Advertisement()
 
+    start_se = pg.mixer.Sound("joi_sound/アヒルが大笑い.mp3")
+    gameover_se = pg.mixer.Sound("joi_sound/鳥の奇声.mp3")
+
     enemy_timer = gate_timer = sword_timer = arrow_timer = 0
     enemy_count = 0
     tmr = 0
     font = pg.font.SysFont("meiryo", 26)
+    start_se.play()
 
     pg.mixer.music.load("fig/joi.mp3")
     pg.mixer.music.set_volume(0.4)
@@ -273,6 +277,7 @@ def stage2(screen):
             
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 if is_gameover:
+                    gameover_se.play()
                     if advertisement.surx_rct.collidepoint(event.pos):
                         # ×ボタンでゲームリスタート
                         stage2(screen)
